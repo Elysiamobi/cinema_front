@@ -491,6 +491,8 @@ export default {
 <style scoped>
 .orders-management {
   padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-header {
@@ -498,50 +500,163 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ebeef5;
 }
 
 .page-header h2 {
   margin: 0;
-  color: #303133;
+  color: #409EFF;
+  font-size: 24px;
+  font-weight: 600;
+  position: relative;
+}
+
+.page-header h2::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+  width: 50px;
+  height: 3px;
+  background-color: #409EFF;
+  border-radius: 3px;
 }
 
 .search-filter-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.el-table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.el-table :deep(th) {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: bold;
+  padding: 12px 0;
+}
+
+.el-table :deep(td) {
+  padding: 12px 0;
+}
+
+.el-table :deep(.el-table__row:hover) {
+  background-color: #f5f7fa;
+}
+
+.el-table :deep(.el-table__row:nth-child(even)) {
+  background-color: #fafafa;
 }
 
 .pagination-container {
   margin-top: 20px;
+  padding: 15px 0;
   display: flex;
   justify-content: flex-end;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.el-dialog :deep(.el-dialog__header) {
+  padding: 20px;
+  margin: 0;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.el-dialog :deep(.el-dialog__title) {
+  font-weight: 600;
+  color: #303133;
+}
+
+.el-dialog :deep(.el-dialog__body) {
+  padding: 20px;
 }
 
 .order-details {
-  padding: 10px;
+  padding: 15px;
 }
 
 .movie-info {
   display: flex;
   gap: 20px;
   margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ebeef5;
 }
 
 .movie-poster {
-  width: 100px;
-  height: 150px;
+  width: 120px;
+  height: 180px;
   object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.movie-poster:hover {
+  transform: scale(1.03);
 }
 
 .movie-details h3 {
-  margin-top: 0;
+  margin: 0 0 10px 0;
+  color: #303133;
+  font-size: 18px;
+}
+
+.movie-details p {
+  margin: 5px 0;
+  color: #606266;
+  font-size: 14px;
+}
+
+.screening-info, .order-info, .user-info {
+  background-color: #f8fafc;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
 }
 
 h4 {
-  margin-top: 20px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 5px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  color: #409EFF;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+  .search-filter-container {
+    flex-direction: column;
+  }
+  
+  .el-input, .el-select, .el-date-picker {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+  
+  .pagination-container {
+    justify-content: center;
+  }
+  
+  .movie-info {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
 }
 </style>

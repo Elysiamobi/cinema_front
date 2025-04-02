@@ -5,6 +5,7 @@ import Register from '../views/Register.vue'
 import MovieDetail from '../views/MovieDetail.vue'
 import Booking from '../views/Booking.vue'
 import Profile from '../views/Profile.vue'
+import AdminLayout from '../views/admin/AdminLayout.vue'
 import AdminDashboard from '../views/admin/Dashboard.vue'
 import AdminMovies from '../views/admin/Movies.vue'
 import AdminScreenings from '../views/admin/Screenings.vue'
@@ -46,35 +47,38 @@ const routes = [
     component: Profile,
     meta: { requiresAuth: true }
   },
+  // Admin routes with nested layout
   {
     path: '/admin',
-    name: 'AdminDashboard',
-    component: AdminDashboard,
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/admin/movies',
-    name: 'AdminMovies',
-    component: AdminMovies,
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/admin/screenings',
-    name: 'AdminScreenings',
-    component: AdminScreenings,
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/admin/orders',
-    name: 'AdminOrders',
-    component: AdminOrders,
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/admin/users',
-    name: 'AdminUsers',
-    component: AdminUsers,
-    meta: { requiresAuth: true, requiresAdmin: true }
+    component: AdminLayout,
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      {
+        path: '',
+        name: 'AdminDashboard',
+        component: AdminDashboard
+      },
+      {
+        path: 'movies',
+        name: 'AdminMovies',
+        component: AdminMovies
+      },
+      {
+        path: 'screenings',
+        name: 'AdminScreenings',
+        component: AdminScreenings
+      },
+      {
+        path: 'orders',
+        name: 'AdminOrders',
+        component: AdminOrders
+      },
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: AdminUsers
+      }
+    ]
   }
 ]
 

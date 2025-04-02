@@ -529,38 +529,122 @@ export default {
 <style scoped>
 .profile-page {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  margin-bottom: 30px;
+  color: #409EFF;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .user-info,
 .order-history {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.user-info:hover,
+.order-history:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #f5f7fa;
+  padding: 16px 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.card-header span {
+  font-size: 18px;
+  font-weight: bold;
+  color: #303133;
 }
 
 .user-details {
-  margin-bottom: 20px;
+  margin: 20px;
+  padding-bottom: 20px;
 }
 
 .user-details p {
-  margin: 10px 0;
+  margin: 12px 0;
+  font-size: 15px;
+  color: #606266;
+  display: flex;
+}
+
+.user-details p strong {
+  width: 80px;
+  color: #303133;
+}
+
+:deep(.el-divider) {
+  margin: 25px 0;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+}
+
+:deep(.el-button--primary) {
+  transition: all 0.3s;
+}
+
+:deep(.el-button--primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
 .search-filter-container {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  background-color: #f5f7fa;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+:deep(.el-table) {
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+:deep(.el-table th) {
+  background-color: #f5f7fa;
+  color: #303133;
+  font-weight: bold;
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: #fafafa;
+}
+
+:deep(.el-tag) {
+  font-weight: 500;
+  border-radius: 4px;
 }
 
 .pagination-container {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-pagination) {
+  padding: 10px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
 }
 
 /* 自定义分页组件文本 */
@@ -575,5 +659,23 @@ export default {
 
 :deep(.el-pagination .el-pagination__sizes) {
   margin-right: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .search-filter-container {
+    flex-direction: column;
+  }
+  
+  .search-filter-container .el-input,
+  .search-filter-container .el-select,
+  .search-filter-container .el-date-picker {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+  
+  .el-col {
+    width: 100% !important;
+  }
 }
 </style>

@@ -445,42 +445,170 @@ export default {
 <style scoped>
 .movies-management {
   padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ebeef5;
 }
 
 .page-header h2 {
   margin: 0;
-  color: #303133;
+  color: #409EFF;
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.page-header .el-button {
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.page-header .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
 .search-filter-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 12px;
+  margin-bottom: 20px;
+  background-color: #f5f7fa;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+:deep(.el-table) {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+:deep(.el-table th) {
+  background-color: #f5f7fa;
+  color: #303133;
+  font-weight: bold;
+  padding: 12px 0;
+}
+
+:deep(.el-table td) {
+  padding: 12px 0;
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: #fafafa;
+}
+
+:deep(.el-table__row) {
+  transition: all 0.2s;
+}
+
+:deep(.el-table__row:hover) {
+  background-color: #f0f7ff !important;
+}
+
+:deep(.el-button--link) {
+  font-weight: bold;
 }
 
 .pagination-container {
-  margin-top: 20px;
+  margin-top: 25px;
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-pagination) {
+  padding: 12px;
+  background-color: #f5f7fa;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .movie-poster {
   width: 60px;
   height: 90px;
   object-fit: cover;
+  border-radius: 4px;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.movie-poster:hover {
+  transform: scale(2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+:deep(.el-dialog) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.el-dialog__header) {
+  background-color: #f5f7fa;
+  padding: 20px;
+  margin: 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+:deep(.el-dialog__title) {
+  font-weight: bold;
+  color: #303133;
+}
+
+:deep(.el-dialog__body) {
+  padding: 25px 20px;
+}
+
+:deep(.el-dialog__footer) {
+  border-top: 1px solid #ebeef5;
+  padding: 15px 20px;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.dialog-footer .el-button {
+  padding: 10px 20px;
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .search-filter-container {
+    flex-direction: column;
+  }
+  
+  .search-filter-container .el-input,
+  .search-filter-container .el-select,
+  .search-filter-container .el-date-picker {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .page-header .el-button {
+    width: 100%;
+  }
 }
 </style>

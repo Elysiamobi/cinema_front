@@ -1,0 +1,105 @@
+/* Admin tables common styling */
+
+.el-table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+}
+
+.el-table th {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: bold;
+  padding: 12px 0;
+}
+
+.el-table td {
+  padding: 12px 0;
+}
+
+.el-table .el-table__row:hover {
+  background-color: #f5f7fa;
+}
+
+.el-table .el-table__row:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* Status tag colors */
+.el-tag.el-tag--danger {
+  background-color: #fef0f0;
+  color: #f56c6c;
+  border-color: #fbc4c4;
+}
+
+.el-tag.el-tag--warning {
+  background-color: #fdf6ec;
+  color: #e6a23c;
+  border-color: #f5dab1;
+}
+
+.el-tag.el-tag--success {
+  background-color: #f0f9eb;
+  color: #67c23a;
+  border-color: #c2e7b0;
+}
+
+.el-tag.el-tag--info {
+  background-color: #f4f4f5;
+  color: #909399;
+  border-color: #d3d4d6;
+}
+
+/* Dialog styling */
+.el-dialog .el-dialog__header {
+  padding: 20px;
+  margin: 0;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.el-dialog .el-dialog__title {
+  font-weight: 600;
+  color: #303133;
+}
+
+.el-dialog .el-dialog__body {
+  padding: 20px;
+}
+
+.el-dialog .el-dialog__footer {
+  padding: 15px 20px;
+  border-top: 1px solid #ebeef5;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Form styling */
+.el-form-item .el-form-item__label {
+  font-weight: 500;
+}
+
+.el-date-picker {
+  width: 100%;
+}
+
+.el-input-number {
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .el-table {
+    font-size: 14px;
+  }
+  
+  .el-table .cell {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+} 

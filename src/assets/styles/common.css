@@ -1,0 +1,182 @@
+/* Common styles for the cinema application */
+
+/* Base styles */
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  color: #303133;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f7fa;
+}
+
+/* Transitions for smoother UX */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Element Plus customizations */
+.el-card {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.el-card:hover {
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+}
+
+.el-button {
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.el-button--primary {
+  background-color: #409EFF;
+}
+
+.el-button--primary:hover {
+  background-color: #66b1ff;
+}
+
+.el-button--danger:hover {
+  background-color: #f56c6c;
+  opacity: 0.9;
+}
+
+.el-input__inner, .el-select__input {
+  border-radius: 4px;
+}
+
+.el-tag {
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.el-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.el-table th {
+  background-color: #f5f7fa;
+  font-weight: bold;
+}
+
+/* Text styling */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.4;
+}
+
+h1 {
+  font-size: 28px;
+  color: #409EFF;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 20px;
+}
+
+/* Utilities */
+.text-primary {
+  color: #409EFF;
+}
+
+.text-success {
+  color: #67c23a;
+}
+
+.text-warning {
+  color: #e6a23c;
+}
+
+.text-danger {
+  color: #f56c6c;
+}
+
+.text-muted {
+  color: #909399;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.mb-1 {
+  margin-bottom: 10px;
+}
+
+.mb-2 {
+  margin-bottom: 20px;
+}
+
+.mb-3 {
+  margin-bottom: 30px;
+}
+
+.mt-1 {
+  margin-top: 10px;
+}
+
+.mt-2 {
+  margin-top: 20px;
+}
+
+.mt-3 {
+  margin-top: 30px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .el-form-item {
+    margin-bottom: 18px;
+  }
+  
+  .el-table .cell {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  
+  h1 {
+    font-size: 24px;
+  }
+  
+  h2 {
+    font-size: 20px;
+  }
+  
+  h3 {
+    font-size: 18px;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background-color: white;
+  }
+  
+  .el-button, .el-pagination, .no-print {
+    display: none !important;
+  }
+  
+  .el-table, .el-card {
+    box-shadow: none !important;
+  }
+} 

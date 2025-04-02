@@ -193,13 +193,28 @@ export default {
 <style scoped>
 .home {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #409EFF;
+  font-size: 32px;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .search-filter-container {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  background-color: #f5f7fa;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
 .movie-list {
@@ -207,50 +222,76 @@ export default {
 }
 
 .movie-card {
-  margin-bottom: 20px;
-  transition: transform 0.3s ease;
+  margin-bottom: 30px;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .movie-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-8px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
 .movie-poster {
   width: 100%;
-  height: 300px;
+  height: 320px;
   object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.movie-card:hover .movie-poster {
+  transform: scale(1.05);
 }
 
 .movie-info {
-  padding: 14px;
+  padding: 16px;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
 }
 
 .movie-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
+  color: #303133;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-bottom: 8px;
 }
 
 .movie-director {
   margin: 8px 0;
-  color: #666;
+  color: #606266;
   font-size: 14px;
 }
 
 .movie-rating {
-  margin: 8px 0;
+  margin: 12px 0;
   color: #ff9900;
   font-weight: bold;
+  font-size: 16px;
 }
 
 .pagination-container {
-  margin-top: 30px;
+  margin-top: 40px;
   display: flex;
   justify-content: center;
+}
+
+/* Button styling */
+.movie-info .el-button {
+  margin-top: 10px;
+  width: 100%;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.movie-info .el-button:hover {
+  transform: scale(1.03);
+  opacity: 0.9;
 }
 
 /* 自定义分页组件文本 */
@@ -265,5 +306,19 @@ export default {
 
 :deep(.el-pagination .el-pagination__sizes) {
   margin-right: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .search-filter-container {
+    flex-direction: column;
+  }
+  
+  .search-filter-container .el-input,
+  .search-filter-container .el-select,
+  .search-filter-container .el-date-picker {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
 }
 </style> 
