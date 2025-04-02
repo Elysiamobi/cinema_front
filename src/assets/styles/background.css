@@ -1,0 +1,61 @@
+/* 全局背景样式 */
+body {
+  background-image: url('../images/deepseek.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed; /* 固定背景，滚动时不移动 */
+  background-color: #f5f7fa; /* 作为背景图加载前或加载失败的后备颜色 */
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* 为内容区域添加半透明效果，增强可读性 */
+.el-container {
+  background-color: rgba(255, 255, 255, 0.85); /* 降低不透明度，让背景更明显 */
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+  position: relative; /* 确保容器相对定位 */
+  z-index: 1; /* 确保内容在背景之上但不遮挡背景 */
+  min-height: 100vh;
+  backdrop-filter: blur(5px); /* 添加模糊效果，增强文本可读性 */
+  -webkit-backdrop-filter: blur(5px); /* Safari 支持 */
+}
+
+/* 为头部添加透明度，使背景图在顶部可见 */
+.el-header {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 为底部添加透明度，使背景图在底部可见 */
+.el-footer {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* 为管理后台添加特殊效果 */
+.admin-layout {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  margin: 10px;
+  overflow: hidden;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* 美化滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(64, 158, 255, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: rgba(245, 247, 250, 0.5);
+} 
