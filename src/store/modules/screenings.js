@@ -175,6 +175,22 @@ export default {
           price: parseFloat(screeningData.price)
         }
         
+        // 确保日期格式正确
+        if (typeof formattedData.screening_time === 'string') {
+          // 处理ISO格式日期（含有T的格式）
+          if (formattedData.screening_time.includes('T')) {
+            console.log('Store中转换前的日期格式:', formattedData.screening_time);
+            formattedData.screening_time = formattedData.screening_time.replace('T', ' ');
+            console.log('Store中转换后的日期格式:', formattedData.screening_time);
+          }
+          
+          // 确保时间格式包含分钟
+          if (formattedData.screening_time.match(/^\d{4}-\d{2}-\d{2} \d{2}$/)) {
+            formattedData.screening_time += ':00';
+            console.log('Store中添加分钟后的日期格式:', formattedData.screening_time);
+          }
+        }
+        
         await createScreening(formattedData)
         await dispatch('fetchScreenings')
       } catch (error) {
@@ -204,6 +220,22 @@ export default {
           hall: String(data.hall || ''),
           screening_time: String(data.screening_time || ''),
           price: parseFloat(data.price || 0)
+        }
+        
+        // 确保日期格式正确
+        if (typeof formattedData.screening_time === 'string') {
+          // 处理ISO格式日期（含有T的格式）
+          if (formattedData.screening_time.includes('T')) {
+            console.log('Store更新前的日期格式:', formattedData.screening_time);
+            formattedData.screening_time = formattedData.screening_time.replace('T', ' ');
+            console.log('Store更新后的日期格式:', formattedData.screening_time);
+          }
+          
+          // 确保时间格式包含分钟
+          if (formattedData.screening_time.match(/^\d{4}-\d{2}-\d{2} \d{2}$/)) {
+            formattedData.screening_time += ':00';
+            console.log('Store更新时添加分钟后的日期格式:', formattedData.screening_time);
+          }
         }
         
         console.log(`发送放映场次更新请求，ID:${screeningId}, 数据:`, formattedData)

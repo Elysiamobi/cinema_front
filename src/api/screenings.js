@@ -3,9 +3,8 @@ import api from './config'
 export const getScreenings = async (movieId) => {
   try {
     // 当没有指定 movieId 时获取所有场次，有 movieId 时获取指定电影的场次
-    // 注意：后端API可能不支持直接按电影ID筛选，所以我们在这里做一个兼容处理
-    const url = '/screenings'
-    console.log(`获取放映场次列表, 电影ID: ${movieId || '全部'}`)
+    const url = movieId ? `/screenings/movie/${movieId}` : '/screenings'
+    console.log(`获取放映场次列表, URL: ${url}`)
     
     const response = await api.get(url)
     console.log('获取到的放映场次列表:', response)
@@ -16,30 +15,8 @@ export const getScreenings = async (movieId) => {
       return []
     }
     
-    // 如果指定了电影ID，在前端进行过滤
-    let filteredScreenings = response
-    if (movieId) {
-      const id = parseInt(movieId, 10)
-      console.log(`在前端过滤电影ID: ${id} 的场次`)
-      
-      // 尝试匹配movie_id字段
-      // 注意：考虑到后端数据可能没有movie_id字段，这可能会过滤掉所有结果
-      filteredScreenings = response.filter(screening => {
-        if (screening.movie_id && parseInt(screening.movie_id, 10) === id) {
-          return true
-        }
-        return false
-      })
-      
-      // 如果没有找到任何结果，返回所有场次（兼容处理）
-      if (filteredScreenings.length === 0) {
-        console.warn(`没有找到电影ID: ${id} 的场次，返回所有场次`)
-        filteredScreenings = response
-      }
-    }
-    
     // 对场次按放映时间排序（升序）
-    const sortedScreenings = [...filteredScreenings].sort((a, b) => {
+    const sortedScreenings = [...response].sort((a, b) => {
       const timeA = new Date(a.screening_time || 0)
       const timeB = new Date(b.screening_time || 0)
       return timeA - timeB
@@ -184,11 +161,51 @@ export const getScreeningById = async (id) => {
 }
 
 export const createScreening = (data) => {
-  return api.post('/screenings', data)
+  // 确保日期格式正确
+  const formattedData = { ...data };
+  
+  // 处理日期格式，确保符合后端接收格式 'YYYY-MM-DD HH:mm'
+  if (formattedData.screening_time) {
+    // 检测是否是ISO格式 (例如 '2025-04-27T16:00')
+    if (formattedData.screening_time.includes('T')) {
+      console.log('正在转换ISO日期格式:', formattedData.screening_time);
+      // 转换为 'YYYY-MM-DD HH:mm' 格式
+      formattedData.screening_time = formattedData.screening_time.replace('T', ' ');
+    }
+    
+    // 确保时间格式中有分钟，如果没有，添加":00"
+    if (formattedData.screening_time.match(/^\d{4}-\d{2}-\d{2} \d{2}$/)) {
+      formattedData.screening_time += ':00';
+    }
+    
+    console.log('发送到后端的日期格式:', formattedData.screening_time);
+  }
+  
+  return api.post('/screenings', formattedData);
 }
 
 export const updateScreening = (id, data) => {
-  return api.put(`/screenings/${id}`, data)
+  // 确保日期格式正确
+  const formattedData = { ...data };
+  
+  // 处理日期格式，确保符合后端接收格式 'YYYY-MM-DD HH:mm'
+  if (formattedData.screening_time) {
+    // 检测是否是ISO格式 (例如 '2025-04-27T16:00')
+    if (formattedData.screening_time.includes('T')) {
+      console.log('正在转换ISO日期格式:', formattedData.screening_time);
+      // 转换为 'YYYY-MM-DD HH:mm' 格式
+      formattedData.screening_time = formattedData.screening_time.replace('T', ' ');
+    }
+    
+    // 确保时间格式中有分钟，如果没有，添加":00"
+    if (formattedData.screening_time.match(/^\d{4}-\d{2}-\d{2} \d{2}$/)) {
+      formattedData.screening_time += ':00';
+    }
+    
+    console.log('发送到后端的日期格式:', formattedData.screening_time);
+  }
+  
+  return api.put(`/screenings/${id}`, formattedData);
 }
 
 export const deleteScreening = (id) => {

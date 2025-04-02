@@ -89,13 +89,13 @@ export default {
         
         // 获取该电影的放映场次并按时间排序
         const screeningsData = await store.dispatch('screenings/fetchScreeningsByMovie', movieId)
-        console.log('原始场次数据:', screeningsData);
         
         // 确保数据是数组并排序
         if (Array.isArray(screeningsData)) {
-          // 由于后端可能没有设置movie_id，简单显示所有场次
-          // 不再过滤场次，直接显示API返回的所有场次数据
-          // 按放映时间升序排序
+          console.log('获取到的场次数据:', screeningsData)
+          
+          // 使用所有返回的放映场次，不再进行过滤
+          // 因为 getScreenings(movieId) 已经返回了特定电影的场次
           screenings.value = screeningsData.sort((a, b) => {
             const timeA = new Date(a.screening_time || 0)
             const timeB = new Date(b.screening_time || 0)

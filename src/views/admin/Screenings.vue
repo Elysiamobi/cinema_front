@@ -79,6 +79,7 @@
             placeholder="选择放映时间"
             format="YYYY-MM-DD HH:mm"
             value-format="YYYY-MM-DD HH:mm"
+            :clearable="false"
           />
         </el-form-item>
         <el-form-item label="票价" prop="price">
@@ -288,6 +289,22 @@ export default {
         
         if (!screeningData.screening_time) {
           throw new Error('请选择放映时间')
+        }
+        
+        // 确保日期格式正确
+        if (typeof screeningData.screening_time === 'string') {
+          // 处理ISO格式日期（含有T的格式）
+          if (screeningData.screening_time.includes('T')) {
+            console.log('转换前的日期格式:', screeningData.screening_time);
+            screeningData.screening_time = screeningData.screening_time.replace('T', ' ');
+            console.log('转换后的日期格式:', screeningData.screening_time);
+          }
+          
+          // 确保时间格式包含分钟
+          if (screeningData.screening_time.match(/^\d{4}-\d{2}-\d{2} \d{2}$/)) {
+            screeningData.screening_time += ':00';
+            console.log('添加分钟后的日期格式:', screeningData.screening_time);
+          }
         }
         
         if (!screeningData.price || screeningData.price <= 0) {
