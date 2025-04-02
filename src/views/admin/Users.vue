@@ -5,12 +5,33 @@
       <el-button type="primary" @click="handleCreate">添加用户</el-button>
     </div>
 
+    <!-- 添加搜索和筛选功能 -->
+    <div class="search-filter-container">
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索用户名/邮箱"
+        clearable
+        style="width: 220px; margin-right: 10px;"
+        @input="handleSearch"
+      />
+      <el-select
+        v-model="roleFilter"
+        placeholder="按角色筛选"
+        clearable
+        style="width: 150px;"
+        @change="handleSearch"
+      >
+        <el-option label="管理员" :value="true" />
+        <el-option label="普通用户" :value="false" />
+      </el-select>
+    </div>
+
     <el-table
       v-loading="loading"
-      :data="users"
-      style="width: 100%"
+      :data="paginatedUsers"
+      style="width: 100%; margin-top: 20px;"
     >
-      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="id" label="ID" width="80" sortable />
       <el-table-column prop="username" label="用户名" width="120" />
       <el-table-column prop="email" label="邮箱" width="200" />
       <el-table-column label="角色" width="100">
@@ -20,7 +41,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="注册时间" width="180">
+      <el-table-column prop="created_at" label="注册时间" width="180" sortable>
         <template #default="{ row }">
           {{ formatDateTime(row.created_at) }}
         </template>
@@ -51,6 +72,21 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 添加分页组件 -->
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="filteredUsers.length"
+        :prev-text="'上一页'"
+        :next-text="'下一页'"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </div>
 
     <!-- 编辑用户对话框 -->
     <el-dialog
@@ -85,7 +121,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -103,7 +139,48 @@ export default {
       password: ''
     })
 
+    // 分页参数
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+
+    // 搜索和筛选参数
+    const searchQuery = ref('')
+    const roleFilter = ref('')
+
     const users = computed(() => store.getters['users/allUsers'])
+
+    // 根据搜索和筛选条件过滤用户列表
+    const filteredUsers = computed(() => {
+      let result = users.value || []
+
+      // 搜索用户名或邮箱
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(user => 
+          (user.username && user.username.toLowerCase().includes(query)) || 
+          (user.email && user.email.toLowerCase().includes(query))
+        )
+      }
+
+      // 按角色筛选
+      if (roleFilter.value !== '') {
+        result = result.filter(user => user.is_admin === roleFilter.value)
+      }
+
+      return result
+    })
+
+    // 分页后的用户列表
+    const paginatedUsers = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredUsers.value.slice(start, end)
+    })
+
+    // 当筛选条件改变时，重置页码
+    watch([searchQuery, roleFilter], () => {
+      currentPage.value = 1
+    })
 
     const rules = {
       username: [
@@ -118,6 +195,34 @@ export default {
         { required: true, message: '请输入密码', trigger: 'blur' },
         { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
       ]
+    }
+
+    // 分页处理函数
+    const handleSizeChange = (size) => {
+      pageSize.value = size
+      currentPage.value = 1
+    }
+
+    const handleCurrentChange = (page) => {
+      currentPage.value = page
+    }
+
+    // 搜索处理函数
+    const handleSearch = () => {
+      currentPage.value = 1
+    }
+
+    const formatDateTime = (dateTime) => {
+      if (!dateTime) return ''
+      const date = new Date(dateTime)
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })
     }
 
     const fetchUsers = async () => {
@@ -199,33 +304,20 @@ export default {
       try {
         if (dialogType.value === 'create') {
           await store.dispatch('users/createUser', form.value)
-          ElMessage.success('创建成功')
+          ElMessage.success('用户创建成功')
         } else {
           await store.dispatch('users/updateUser', {
             id: currentUser.value.id,
-            ...form.value
+            data: form.value
           })
-          ElMessage.success('更新成功')
+          ElMessage.success('用户更新成功')
         }
         dialogVisible.value = false
         await fetchUsers()
       } catch (error) {
-        console.error('提交失败:', error)
-        ElMessage.error('操作失败')
+        console.error('提交用户数据失败:', error)
+        ElMessage.error('提交失败：' + error.message)
       }
-    }
-
-    const formatDateTime = (dateTime) => {
-      if (!dateTime) return ''
-      const date = new Date(dateTime)
-      return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      })
     }
 
     onMounted(() => {
@@ -238,19 +330,28 @@ export default {
     })
 
     return {
-      loading,
       users,
+      loading,
       dialogVisible,
       dialogType,
-      currentUser,
       form,
       rules,
       handleCreate,
       handleEdit,
-      handleDelete,
       handleToggleRole,
+      handleDelete,
       handleSubmit,
-      formatDateTime
+      formatDateTime,
+      // 分页和过滤相关
+      currentPage,
+      pageSize,
+      searchQuery,
+      roleFilter,
+      filteredUsers,
+      paginatedUsers,
+      handleSizeChange,
+      handleCurrentChange,
+      handleSearch
     }
   }
 }
@@ -262,12 +363,28 @@ export default {
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
 }
 
 .page-header h2 {
   margin: 0;
   color: #303133;
+}
+
+.search-filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .dialog-footer {

@@ -4,12 +4,45 @@
       <h2>订单管理</h2>
     </div>
 
+    <!-- 添加搜索和筛选功能 -->
+    <div class="search-filter-container">
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索订单号/用户/电影"
+        clearable
+        style="width: 220px; margin-right: 10px;"
+        @input="handleSearch"
+      />
+      <el-select
+        v-model="statusFilter"
+        placeholder="按状态筛选"
+        clearable
+        style="width: 150px; margin-right: 10px;"
+        @change="handleSearch"
+      >
+        <el-option label="待付款" value="pending" />
+        <el-option label="已付款" value="paid" />
+        <el-option label="已确认" value="confirmed" />
+        <el-option label="已取消" value="cancelled" />
+      </el-select>
+      <el-date-picker
+        v-model="dateFilter"
+        type="date"
+        placeholder="按日期筛选"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        style="width: 220px;"
+        clearable
+        @change="handleSearch"
+      />
+    </div>
+
     <el-table
       v-loading="loading"
-      :data="orders"
-      style="width: 100%"
+      :data="paginatedOrders"
+      style="width: 100%; margin-top: 20px;"
     >
-      <el-table-column prop="id" label="订单ID" width="100" />
+      <el-table-column prop="id" label="订单ID" width="100" sortable />
       <el-table-column label="用户" width="120">
         <template #default="{ row }">
           {{ getUserName(row.user_id) }}
@@ -30,7 +63,7 @@
           {{ formatSeats(row.seats) }}
         </template>
       </el-table-column>
-      <el-table-column prop="total_price" label="总价" width="100">
+      <el-table-column prop="total_price" label="总价" width="100" sortable>
         <template #default="{ row }">
           ¥{{ row.total_price }}
         </template>
@@ -42,7 +75,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" width="180">
+      <el-table-column label="创建时间" width="180" sortable>
         <template #default="{ row }">
           {{ formatDateTime(row.created_at) }}
         </template>
@@ -68,6 +101,21 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 添加分页组件 -->
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="filteredOrders.length"
+        :prev-text="'上一页'"
+        :next-text="'下一页'"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </div>
 
     <!-- 订单详情对话框 -->
     <el-dialog
@@ -113,7 +161,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -125,10 +173,85 @@ export default {
     const detailsDialogVisible = ref(false)
     const currentOrder = ref(null)
 
+    // 分页参数
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+
+    // 搜索和筛选参数
+    const searchQuery = ref('')
+    const statusFilter = ref('')
+    const dateFilter = ref('')
+
     const orders = computed(() => store.getters['orders/allOrders'])
     const users = computed(() => store.getters['users/allUsers'])
     const movies = computed(() => store.getters['movies/allMovies'])
     const screenings = computed(() => store.getters['screenings/allScreenings'])
+
+    // 根据搜索和筛选条件过滤订单列表
+    const filteredOrders = computed(() => {
+      let result = orders.value || []
+
+      // 搜索订单号、用户名或电影名
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(order => {
+          // 订单号搜索
+          if (order.id.toString().includes(query)) return true
+          
+          // 用户名搜索
+          const userName = getUserName(order.user_id).toLowerCase()
+          if (userName.includes(query)) return true
+          
+          // 电影名搜索
+          const movieTitle = getMovieTitle(order.screening_id).toLowerCase()
+          if (movieTitle.includes(query)) return true
+          
+          return false
+        })
+      }
+
+      // 按状态筛选
+      if (statusFilter.value) {
+        result = result.filter(order => order.status === statusFilter.value)
+      }
+
+      // 按日期筛选
+      if (dateFilter.value) {
+        result = result.filter(order => {
+          if (!order.created_at) return false
+          return order.created_at.startsWith(dateFilter.value)
+        })
+      }
+
+      return result
+    })
+
+    // 分页后的订单列表
+    const paginatedOrders = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredOrders.value.slice(start, end)
+    })
+
+    // 当筛选条件改变时，重置页码
+    watch([searchQuery, statusFilter, dateFilter], () => {
+      currentPage.value = 1
+    })
+
+    // 分页处理函数
+    const handleSizeChange = (size) => {
+      pageSize.value = size
+      currentPage.value = 1
+    }
+
+    const handleCurrentChange = (page) => {
+      currentPage.value = page
+    }
+
+    // 搜索处理函数
+    const handleSearch = () => {
+      currentPage.value = 1
+    }
 
     const fetchOrders = async () => {
       loading.value = true
@@ -184,6 +307,9 @@ export default {
             return result
           })
           
+          // 按ID升序排序
+          processedOrders.sort((a, b) => a.id - b.id)
+          
           console.log('处理后的订单列表:', processedOrders)
           store.commit('orders/SET_ORDERS', processedOrders)
         }
@@ -199,7 +325,7 @@ export default {
       try {
         await store.dispatch('users/fetchUsers')
       } catch (err) {
-        ElMessage.error('获取用户列表失败')
+        console.error('获取用户列表失败:', err)
       }
     }
 
@@ -207,7 +333,7 @@ export default {
       try {
         await store.dispatch('movies/fetchMovies')
       } catch (err) {
-        ElMessage.error('获取电影列表失败')
+        console.error('获取电影列表失败:', err)
       }
     }
 
@@ -215,7 +341,7 @@ export default {
       try {
         await store.dispatch('screenings/fetchScreenings')
       } catch (err) {
-        ElMessage.error('获取排片列表失败')
+        console.error('获取场次列表失败:', err)
       }
     }
 
@@ -227,7 +353,6 @@ export default {
 
     const getMovieTitle = (screeningId) => {
       if (!screeningId) return '未知电影'
-      
       const screening = screenings.value.find(s => s.id === screeningId)
       if (!screening) return '未知电影'
       
@@ -237,63 +362,79 @@ export default {
 
     const getScreeningInfo = (screeningId) => {
       if (!screeningId) return '未知场次'
-      
       const screening = screenings.value.find(s => s.id === screeningId)
       if (!screening) return '未知场次'
       
-      return `${screening.theater || '未知影院'} - ${screening.hall || '未知影厅'} - ${screening.screening_time || '未知时间'}`
+      const screeningTime = formatDateTime(screening.screening_time)
+      return `${screening.theater} ${screening.hall} ${screeningTime}`
     }
 
-    const getStatusType = (status) => {
-      const types = {
-        pending: 'warning',
-        paid: 'success',
-        confirmed: 'success',
-        completed: 'success',
-        cancelled: 'danger'
+    const formatSeats = (seats) => {
+      try {
+        if (!seats) return '无座位'
+        if (typeof seats === 'string') {
+          seats = JSON.parse(seats)
+        }
+        if (Array.isArray(seats)) {
+          return seats.join(', ')
+        }
+        return '无效座位'
+      } catch (err) {
+        console.error('格式化座位信息失败:', err)
+        return '无效座位'
       }
-      return types[status] || 'info'
+    }
+
+    const formatDateTime = (dateTime) => {
+      if (!dateTime) return ''
+      return new Date(dateTime).toLocaleString()
     }
 
     const getStatusText = (status) => {
-      const texts = {
-        pending: '待支付',
-        paid: '已支付',
-        confirmed: '已确认',
-        completed: '已完成',
-        cancelled: '已取消'
+      const statusMap = {
+        'pending': '待付款',
+        'paid': '已付款',
+        'confirmed': '已确认',
+        'completed': '已完成',
+        'cancelled': '已取消'
       }
-      return texts[status] || status
+      return statusMap[status] || status
     }
 
-    const handleUpdateStatus = async (order, status) => {
-      const action = status === 'paid' ? '确认支付' : '取消订单'
+    const getStatusType = (status) => {
+      const statusTypeMap = {
+        'pending': 'warning',
+        'paid': 'success',
+        'confirmed': 'success',
+        'completed': 'success',
+        'cancelled': 'danger'
+      }
+      return statusTypeMap[status] || 'info'
+    }
+
+    const handleUpdateStatus = async (order, newStatus) => {
       try {
         await ElMessageBox.confirm(
-          `确定要${action}该订单吗？`,
-          action,
+          `确定要将订单#${order.id}状态更新为${getStatusText(newStatus)}吗？`,
+          '更新订单状态',
           {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
-            type: status === 'paid' ? 'success' : 'warning'
+            type: 'warning'
           }
         )
 
-        console.log(`正在更新订单状态，ID: ${order.id}, 新状态: ${status}`)
-        
-        // 使用后端API接受的状态值: "pending", "paid", "cancelled"
-        // API层会将前端提交的状态与数据库状态之间进行必要的映射
         await store.dispatch('orders/updateOrderStatus', {
           id: order.id,
-          status
+          status: newStatus
         })
         
-        ElMessage.success(`${action}成功`)
+        ElMessage.success('订单状态更新成功')
         await fetchOrders()
       } catch (err) {
         if (err !== 'cancel') {
           console.error('更新订单状态失败:', err)
-          ElMessage.error(err.message || '更新订单状态失败')
+          ElMessage.error(err.message || '更新失败')
         }
       }
     }
@@ -303,36 +444,18 @@ export default {
       detailsDialogVisible.value = true
     }
 
-    const formatDateTime = (datetime) => {
-      if (!datetime) return ''
-      const date = new Date(datetime)
-      return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }
-
-    const formatSeats = (seats) => {
-      if (!seats) return '无座位信息'
-      try {
-        const seatArray = Array.isArray(seats) ? seats : JSON.parse(seats)
-        return seatArray.join(', ')
-      } catch (error) {
-        console.error('座位数据解析错误:', error)
-        return String(seats)
-      }
-    }
-
     onMounted(async () => {
-      await Promise.all([
-        fetchOrders(),
-        fetchUsers(),
-        fetchMovies(),
-        fetchScreenings()
-      ])
+      try {
+        await Promise.all([
+          fetchOrders(),
+          fetchUsers(),
+          fetchMovies(),
+          fetchScreenings()
+        ])
+      } catch (err) {
+        console.error('初始化数据失败:', err)
+        ElMessage.error('加载数据失败')
+      }
     })
 
     return {
@@ -343,12 +466,23 @@ export default {
       getUserName,
       getMovieTitle,
       getScreeningInfo,
-      getStatusType,
-      getStatusText,
-      handleUpdateStatus,
-      handleViewDetails,
+      formatSeats,
       formatDateTime,
-      formatSeats
+      getStatusText,
+      getStatusType,
+      handleUpdateStatus,
+      // 分页和过滤相关
+      currentPage,
+      pageSize,
+      searchQuery,
+      statusFilter,
+      dateFilter,
+      filteredOrders,
+      paginatedOrders,
+      handleSizeChange,
+      handleCurrentChange,
+      handleSearch,
+      handleViewDetails
     }
   }
 }
@@ -371,6 +505,23 @@ export default {
   color: #303133;
 }
 
+.search-filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.order-details {
+  padding: 10px;
+}
+
 .movie-info {
   display: flex;
   gap: 20px;
@@ -378,39 +529,19 @@ export default {
 }
 
 .movie-poster {
-  width: 120px;
-  height: 180px;
+  width: 100px;
+  height: 150px;
   object-fit: cover;
-  border-radius: 4px;
 }
 
 .movie-details h3 {
-  margin: 0 0 10px 0;
-  color: #303133;
+  margin-top: 0;
 }
 
-.movie-details p {
-  margin: 5px 0;
-  color: #606266;
-}
-
-.screening-info,
-.order-info,
-.user-info {
-  margin-bottom: 20px;
-}
-
-.screening-info h4,
-.order-info h4,
-.user-info h4 {
-  margin: 0 0 10px 0;
-  color: #303133;
-}
-
-.screening-info p,
-.order-info p,
-.user-info p {
-  margin: 5px 0;
-  color: #606266;
+h4 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
 }
 </style>

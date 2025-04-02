@@ -5,12 +5,45 @@
       <el-button type="primary" @click="handleAdd">添加电影</el-button>
     </div>
 
+    <!-- 添加搜索和筛选功能 -->
+    <div class="search-filter-container">
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索电影标题/导演"
+        clearable
+        style="width: 220px; margin-right: 10px;"
+        @input="handleSearch"
+      />
+      <el-date-picker
+        v-model="yearFilter"
+        type="year"
+        placeholder="按年份筛选"
+        format="YYYY"
+        value-format="YYYY"
+        style="width: 120px; margin-right: 10px;"
+        clearable
+        @change="handleSearch"
+      />
+      <el-select
+        v-model="ratingFilter"
+        placeholder="按评分筛选"
+        clearable
+        style="width: 150px;"
+        @change="handleSearch"
+      >
+        <el-option label="4.5分以上" :value="4.5" />
+        <el-option label="4分以上" :value="4" />
+        <el-option label="3分以上" :value="3" />
+        <el-option label="2分以上" :value="2" />
+      </el-select>
+    </div>
+
     <el-table
       v-loading="loading"
-      :data="movies"
-      style="width: 100%"
+      :data="paginatedMovies"
+      style="width: 100%; margin-top: 20px;"
     >
-      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="id" label="ID" width="80" sortable />
       <el-table-column label="海报" width="120">
         <template #default="{ row }">
           <el-image
@@ -23,13 +56,13 @@
       </el-table-column>
       <el-table-column prop="title" label="标题" min-width="150" />
       <el-table-column prop="director" label="导演" width="120" />
-      <el-table-column prop="duration" label="时长" width="100">
+      <el-table-column prop="duration" label="时长" width="100" sortable>
         <template #default="{ row }">
           {{ row.duration }}分钟
         </template>
       </el-table-column>
-      <el-table-column prop="release_date" label="上映日期" width="120" />
-      <el-table-column prop="rating" label="评分" width="100">
+      <el-table-column prop="release_date" label="上映日期" width="120" sortable />
+      <el-table-column prop="rating" label="评分" width="100" sortable>
         <template #default="{ row }">
           <el-rate
             v-model="row.rating"
@@ -58,6 +91,21 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 添加分页组件 -->
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="filteredMovies.length"
+        :prev-text="'上一页'"
+        :next-text="'下一页'"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </div>
 
     <!-- 编辑电影对话框 -->
     <el-dialog
@@ -123,7 +171,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -136,7 +184,58 @@ export default {
     const dialogType = ref('add')
     const formRef = ref(null)
 
+    // 分页参数
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+
+    // 搜索和筛选参数
+    const searchQuery = ref('')
+    const yearFilter = ref('')
+    const ratingFilter = ref('')
+
     const movies = computed(() => store.getters['movies/allMovies'])
+
+    // 根据搜索和筛选条件过滤电影列表
+    const filteredMovies = computed(() => {
+      let result = movies.value || []
+
+      // 搜索标题或导演
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(m => 
+          (m.title && m.title.toLowerCase().includes(query)) || 
+          (m.director && m.director.toLowerCase().includes(query))
+        )
+      }
+
+      // 按年份筛选
+      if (yearFilter.value) {
+        result = result.filter(m => {
+          if (!m.release_date) return false
+          return m.release_date.startsWith(yearFilter.value)
+        })
+      }
+
+      // 按评分筛选
+      if (ratingFilter.value) {
+        const minRating = parseFloat(ratingFilter.value)
+        result = result.filter(m => m.rating >= minRating)
+      }
+
+      return result
+    })
+
+    // 分页后的电影列表
+    const paginatedMovies = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredMovies.value.slice(start, end)
+    })
+
+    // 当筛选条件改变时，重置页码
+    watch([searchQuery, yearFilter, ratingFilter], () => {
+      currentPage.value = 1
+    })
 
     const form = ref({
       title: '',
@@ -191,6 +290,9 @@ export default {
           description: String(movie.description || '')
         }))
 
+        // 按ID升序排序
+        processedMovies.sort((a, b) => a.id - b.id)
+
         await store.commit('movies/SET_MOVIES', processedMovies)
         console.log('处理后的电影列表:', processedMovies)
       } catch (err) {
@@ -199,6 +301,21 @@ export default {
       } finally {
         loading.value = false
       }
+    }
+
+    // 分页处理函数
+    const handleSizeChange = (size) => {
+      pageSize.value = size
+      currentPage.value = 1
+    }
+
+    const handleCurrentChange = (page) => {
+      currentPage.value = page
+    }
+
+    // 搜索处理函数
+    const handleSearch = () => {
+      currentPage.value = 1
     }
 
     const handleAdd = () => {
@@ -216,21 +333,20 @@ export default {
       dialogVisible.value = true
     }
 
-    const handleEdit = (row) => {
-      if (row && row.id) {
-        dialogType.value = 'edit'
-        dialogVisible.value = true
-        form.value = {
-          id: parseInt(row.id, 10),
-          title: String(row.title || ''),
-          description: String(row.description || ''),
-          director: String(row.director || ''),
-          actors: String(row.actors || ''),
-          duration: parseInt(row.duration || 0, 10),
-          release_date: String(row.release_date || ''),
-          poster_url: String(row.poster_url || ''),
-          rating: parseFloat(row.rating || 0)
-        }
+    const handleEdit = (movie) => {
+      dialogType.value = 'edit'
+      dialogVisible.value = true
+      
+      form.value = {
+        id: movie.id,
+        title: movie.title,
+        director: movie.director,
+        actors: movie.actors,
+        duration: movie.duration,
+        release_date: movie.release_date,
+        poster_url: movie.poster_url,
+        rating: movie.rating,
+        description: movie.description
       }
     }
 
@@ -263,49 +379,29 @@ export default {
       try {
         await formRef.value.validate()
         
-        // 验证和格式化数据
+        // 确保所有字段都被正确处理
         const movieData = {
-          title: form.value.title?.trim() || '',
-          description: form.value.description?.trim() || '',
-          director: form.value.director?.trim() || '',
-          actors: form.value.actors?.trim() || '',
-          duration: parseInt(form.value.duration || 0),
-          release_date: form.value.release_date || '',
-          poster_url: form.value.poster_url?.trim() || '',
-          rating: parseFloat(form.value.rating || 0)
+          id: form.value.id,
+          title: String(form.value.title || '').trim(),
+          director: String(form.value.director || '').trim(),
+          actors: String(form.value.actors || '').trim(),
+          duration: parseInt(form.value.duration || 0, 10),
+          release_date: String(form.value.release_date || ''),
+          poster_url: String(form.value.poster_url || '').trim(),
+          rating: parseFloat(form.value.rating || 0),
+          description: String(form.value.description || '').trim()
         }
-        
-        // 验证必填字段
-        if (!movieData.title) {
-          throw new Error('电影标题不能为空')
-        }
-        
-        if (!movieData.director) {
-          throw new Error('导演不能为空')
-        }
-        
-        if (!movieData.release_date) {
-          throw new Error('上映日期不能为空')
-        }
-        
+
+        console.log('准备提交的电影数据:', movieData)
+
         if (dialogType.value === 'edit') {
-          // 确保有ID
-          if (!form.value.id) {
-            throw new Error('编辑电影时ID不能为空')
-          }
-          
-          // 添加ID到请求数据中
-          movieData.id = form.value.id
-          
-          console.log('更新电影，ID:', form.value.id, '数据:', movieData)
           await store.dispatch('movies/updateMovie', movieData)
           ElMessage.success('电影更新成功')
         } else {
-          console.log('创建新电影，数据:', movieData)
           await store.dispatch('movies/createMovie', movieData)
           ElMessage.success('电影添加成功')
         }
-        
+
         dialogVisible.value = false
         await fetchMovies()
       } catch (err) {
@@ -314,8 +410,8 @@ export default {
       }
     }
 
-    onMounted(async () => {
-      await fetchMovies()
+    onMounted(() => {
+      fetchMovies()
     })
 
     return {
@@ -329,7 +425,18 @@ export default {
       handleAdd,
       handleEdit,
       handleDelete,
-      handleSubmit
+      handleSubmit,
+      // 分页和过滤相关
+      currentPage,
+      pageSize,
+      searchQuery,
+      yearFilter,
+      ratingFilter,
+      filteredMovies,
+      paginatedMovies,
+      handleSizeChange,
+      handleCurrentChange,
+      handleSearch
     }
   }
 }
@@ -352,10 +459,23 @@ export default {
   color: #303133;
 }
 
+.search-filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .movie-poster {
-  width: 80px;
-  height: 120px;
-  border-radius: 4px;
+  width: 60px;
+  height: 90px;
+  object-fit: cover;
 }
 
 .dialog-footer {

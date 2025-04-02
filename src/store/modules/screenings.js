@@ -45,6 +45,9 @@ export default {
           updated_at: String(screening.updated_at || '')
         }))
         
+        // 按ID升序排序
+        formattedScreenings.sort((a, b) => a.id - b.id)
+        
         console.log('处理后的放映场次列表:', formattedScreenings)
         commit('SET_SCREENINGS', formattedScreenings)
         return formattedScreenings
@@ -153,6 +156,9 @@ export default {
           created_at: String(screening.created_at || ''),
           updated_at: String(screening.updated_at || '')
         }))
+        
+        // 按ID升序排序
+        formattedScreenings.sort((a, b) => a.id - b.id)
         
         commit('SET_SCREENINGS', formattedScreenings)
         return formattedScreenings

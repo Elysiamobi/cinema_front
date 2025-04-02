@@ -86,6 +86,9 @@ export default {
           created_at: String(order.created_at || '')
         }))
         
+        // Sort orders by ID in ascending order
+        formattedOrders.sort((a, b) => a.id - b.id)
+        
         console.log('处理后的订单列表:', formattedOrders)
         commit('SET_ORDERS', formattedOrders)
         return formattedOrders
@@ -136,6 +139,9 @@ export default {
           status: String(order.status || 'pending'),
           created_at: String(order.created_at || '')
         }))
+        
+        // Sort user orders by ID in ascending order
+        formattedOrders.sort((a, b) => a.id - b.id)
         
         console.log('处理后的用户订单列表:', formattedOrders)
         commit('SET_USER_ORDERS', formattedOrders)

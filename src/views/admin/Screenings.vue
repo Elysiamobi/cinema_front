@@ -5,12 +5,47 @@
       <el-button type="primary" @click="handleAdd">添加排片</el-button>
     </div>
 
+    <!-- 添加搜索和筛选功能 -->
+    <div class="search-filter-container">
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索影院/影厅"
+        clearable
+        style="width: 220px; margin-right: 10px;"
+        @input="handleSearch"
+      />
+      <el-select
+        v-model="movieFilter"
+        placeholder="按电影筛选"
+        clearable
+        style="width: 220px; margin-right: 10px;"
+        @change="handleSearch"
+      >
+        <el-option
+          v-for="movie in movies"
+          :key="movie.id"
+          :label="movie.title"
+          :value="movie.id"
+        />
+      </el-select>
+      <el-date-picker
+        v-model="dateFilter"
+        type="date"
+        placeholder="按日期筛选"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        style="width: 220px; margin-right: 10px;"
+        clearable
+        @change="handleSearch"
+      />
+    </div>
+
     <el-table
       v-loading="loading"
-      :data="screenings"
-      style="width: 100%"
+      :data="paginatedScreenings"
+      style="width: 100%; margin-top: 20px;"
     >
-      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="id" label="ID" width="80" sortable />
       <el-table-column label="电影" min-width="150">
         <template #default="{ row }">
           {{ getMovieTitle(row.movie_id) }}
@@ -18,8 +53,8 @@
       </el-table-column>
       <el-table-column prop="theater" label="影院" width="120" />
       <el-table-column prop="hall" label="影厅" width="100" />
-      <el-table-column prop="screening_time" label="放映时间" width="180" />
-      <el-table-column prop="price" label="票价" width="100">
+      <el-table-column prop="screening_time" label="放映时间" width="180" sortable />
+      <el-table-column prop="price" label="票价" width="100" sortable>
         <template #default="{ row }">
           ¥{{ row.price }}
         </template>
@@ -43,6 +78,21 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 添加分页组件 -->
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="filteredScreenings.length"
+        :prev-text="'上一页'"
+        :next-text="'下一页'"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </div>
 
     <!-- 编辑排片对话框 -->
     <el-dialog
@@ -102,7 +152,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -116,8 +166,59 @@ export default {
     const formRef = ref(null)
     const currentScreening = ref(null)
 
+    // 分页参数
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+
+    // 搜索和筛选参数
+    const searchQuery = ref('')
+    const movieFilter = ref('')
+    const dateFilter = ref('')
+
     const screenings = computed(() => store.getters['screenings/allScreenings'])
     const movies = computed(() => store.getters['movies/allMovies'])
+
+    // 根据搜索和筛选条件过滤场次列表
+    const filteredScreenings = computed(() => {
+      let result = screenings.value || []
+
+      // 搜索影院或影厅
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(s => 
+          (s.theater && s.theater.toLowerCase().includes(query)) || 
+          (s.hall && s.hall.toLowerCase().includes(query))
+        )
+      }
+
+      // 按电影筛选
+      if (movieFilter.value) {
+        result = result.filter(s => s.movie_id === movieFilter.value)
+      }
+
+      // 按日期筛选
+      if (dateFilter.value) {
+        result = result.filter(s => {
+          // 截取场次时间的日期部分进行比较
+          const screeningDate = s.screening_time ? s.screening_time.split(' ')[0] : ''
+          return screeningDate === dateFilter.value
+        })
+      }
+
+      return result
+    })
+
+    // 分页后的场次列表
+    const paginatedScreenings = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredScreenings.value.slice(start, end)
+    })
+
+    // 当筛选条件改变时，重置页码
+    watch([searchQuery, movieFilter, dateFilter], () => {
+      currentPage.value = 1
+    })
 
     const form = ref({
       movie_id: '',
@@ -205,6 +306,21 @@ export default {
     const getMovieTitle = (movieId) => {
       const movie = movies.value.find(m => m.id === movieId)
       return movie ? movie.title : '未知电影'
+    }
+
+    // 分页处理函数
+    const handleSizeChange = (size) => {
+      pageSize.value = size
+      currentPage.value = 1
+    }
+
+    const handleCurrentChange = (page) => {
+      currentPage.value = page
+    }
+
+    // 搜索处理函数
+    const handleSearch = () => {
+      currentPage.value = 1
     }
 
     const handleAdd = () => {
@@ -359,7 +475,18 @@ export default {
       handleEdit,
       handleDelete,
       handleSubmit,
-      getMovieTitle
+      getMovieTitle,
+      // 分页和过滤相关
+      currentPage,
+      pageSize,
+      searchQuery,
+      movieFilter,
+      dateFilter,
+      filteredScreenings,
+      paginatedScreenings,
+      handleSizeChange,
+      handleCurrentChange,
+      handleSearch
     }
   }
 }
@@ -380,6 +507,19 @@ export default {
 .page-header h2 {
   margin: 0;
   color: #303133;
+}
+
+.search-filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .dialog-footer {

@@ -40,7 +40,41 @@
               <span>订单历史</span>
             </div>
           </template>
-          <el-table :data="orders" v-loading="loading">
+          
+          <!-- 添加搜索和筛选功能 -->
+          <div class="search-filter-container">
+            <el-input
+              v-model="searchQuery"
+              placeholder="搜索电影名称/订单号"
+              clearable
+              style="width: 220px; margin-right: 10px;"
+              @input="handleSearch"
+            />
+            <el-select
+              v-model="statusFilter"
+              placeholder="按状态筛选"
+              clearable
+              style="width: 150px; margin-right: 10px;"
+              @change="handleSearch"
+            >
+              <el-option label="待付款" value="pending" />
+              <el-option label="已付款" value="paid" />
+              <el-option label="已确认" value="confirmed" />
+              <el-option label="已取消" value="cancelled" />
+            </el-select>
+            <el-date-picker
+              v-model="dateFilter"
+              type="date"
+              placeholder="按日期筛选"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              style="width: 150px;"
+              clearable
+              @change="handleSearch"
+            />
+          </div>
+          
+          <el-table :data="paginatedOrders" v-loading="loading">
             <el-table-column prop="id" label="订单号" width="100"></el-table-column>
             <el-table-column prop="movie.title" label="电影"></el-table-column>
             <el-table-column prop="screening.screening_time" label="放映时间">
@@ -88,6 +122,21 @@
               </template>
             </el-table-column>
           </el-table>
+          
+          <!-- 添加分页组件 -->
+          <div class="pagination-container">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[10, 20, 50, 100]"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="filteredOrders.length"
+              :prev-text="'上一页'"
+              :next-text="'下一页'"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -95,7 +144,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -108,6 +157,15 @@ export default {
     const orders = ref([])
     const paymentLoading = ref(null)  // 当前正在支付的订单ID
     const cancelLoading = ref(null)   // 当前正在取消的订单ID
+    
+    // 分页参数
+    const currentPage = ref(1)
+    const pageSize = ref(10) // 每页10条订单记录
+    
+    // 搜索和筛选参数
+    const searchQuery = ref('')
+    const statusFilter = ref('')
+    const dateFilter = ref('')
 
     const userForm = reactive({
       username: '',
@@ -129,6 +187,63 @@ export default {
       password: [
         { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
       ]
+    }
+    
+    // 根据搜索和筛选条件过滤订单列表
+    const filteredOrders = computed(() => {
+      let result = orders.value || []
+
+      // 搜索电影名称或订单号
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(order => {
+          const movieTitle = order.movie?.title?.toLowerCase() || ''
+          const orderId = order.id?.toString() || ''
+          return movieTitle.includes(query) || orderId.includes(query)
+        })
+      }
+
+      // 按状态筛选
+      if (statusFilter.value) {
+        result = result.filter(order => order.status === statusFilter.value)
+      }
+
+      // 按日期筛选
+      if (dateFilter.value) {
+        result = result.filter(order => {
+          if (!order.created_at) return false
+          return order.created_at.startsWith(dateFilter.value)
+        })
+      }
+
+      return result
+    })
+    
+    // 分页后的订单列表
+    const paginatedOrders = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredOrders.value.slice(start, end)
+    })
+    
+    // 当筛选条件改变时，重置页码
+    watch([searchQuery, statusFilter, dateFilter], () => {
+      currentPage.value = 1
+    })
+    
+    // 分页处理函数
+    const handleSizeChange = (size) => {
+      pageSize.value = size
+      currentPage.value = 1
+    }
+
+    const handleCurrentChange = (page) => {
+      currentPage.value = page
+    }
+
+    // 搜索处理函数
+    const handleSearch = () => {
+      currentPage.value = 1
     }
 
     const handleUpdate = async () => {
@@ -383,8 +498,8 @@ export default {
 
     return {
       userForm,
-      rules,
       formRef,
+      rules,
       loading,
       orders,
       paymentLoading,
@@ -395,7 +510,17 @@ export default {
       formatDateTime,
       getStatusType,
       getStatusText,
-      formatSeats
+      formatSeats,
+      currentPage,
+      pageSize,
+      searchQuery,
+      statusFilter,
+      dateFilter,
+      filteredOrders,
+      paginatedOrders,
+      handleSizeChange,
+      handleCurrentChange,
+      handleSearch
     }
   }
 }
@@ -406,7 +531,8 @@ export default {
   padding: 20px;
 }
 
-.user-info {
+.user-info,
+.order-history {
   margin-bottom: 20px;
 }
 
@@ -416,20 +542,38 @@ export default {
   align-items: center;
 }
 
-.order-history {
-  margin-bottom: 20px;
-}
-
 .user-details {
   margin-bottom: 20px;
 }
 
 .user-details p {
   margin: 10px 0;
-  color: #666;
 }
 
-.el-divider {
-  margin: 20px 0;
+.search-filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 自定义分页组件文本 */
+:deep(.el-pagination .el-pagination__total) {
+  font-size: 14px;
+}
+
+:deep(.el-pagination button.btn-prev),
+:deep(.el-pagination button.btn-next) {
+  font-size: 14px;
+}
+
+:deep(.el-pagination .el-pagination__sizes) {
+  margin-right: 15px;
 }
 </style>

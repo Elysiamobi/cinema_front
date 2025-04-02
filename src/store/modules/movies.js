@@ -46,6 +46,9 @@ export default {
           rating: parseFloat(movie.rating || 0)
         }))
         
+        // 按ID升序排序
+        formattedMovies.sort((a, b) => a.id - b.id)
+        
         console.log('处理后的电影列表:', formattedMovies)
         commit('SET_MOVIES', formattedMovies)
         return formattedMovies
@@ -107,6 +110,11 @@ export default {
           rating: parseFloat(movieData.rating || 0)
         }
         
+        // 确保标题不为空
+        if (!formattedData.title) {
+          throw new Error('电影标题不能为空')
+        }
+        
         console.log('创建电影，处理后的数据:', formattedData)
         await createMovie(formattedData)
         return dispatch('fetchMovies')
@@ -119,19 +127,28 @@ export default {
       try {
         console.log('更新电影数据:', movieData)
         
-        // 确保有电影ID，且为整数
-        const movieId = parseInt(movieData.id, 10)
-        if (isNaN(movieId) || movieId <= 0) {
-          throw new Error('无效的电影ID')
+        // 处理电影数据，支持两种格式：直接对象或{id, data}格式
+        let movieId, updateData;
+        
+        if (movieData.data) {
+          // 处理 {id, data} 格式
+          movieId = parseInt(movieData.id, 10);
+          updateData = { ...movieData.data };
+        } else {
+          // 处理直接传入电影对象的情况
+          movieId = parseInt(movieData.id, 10);
+          updateData = { ...movieData };
+          delete updateData.id;
         }
         
-        // 提取更新数据，忽略id属性
-        const updateData = { ...movieData };
-        delete updateData.id;
+        // 验证ID
+        if (isNaN(movieId) || movieId <= 0) {
+          throw new Error('无效的电影ID');
+        }
         
         // 确保数据格式正确
         const formattedData = {
-          title: String(updateData.title || ''),
+          title: String(updateData.title || '').trim(),
           director: String(updateData.director || ''),
           actors: String(updateData.actors || ''),
           duration: parseInt(updateData.duration || 0, 10),
@@ -139,6 +156,11 @@ export default {
           poster_url: String(updateData.poster_url || ''),
           rating: parseFloat(updateData.rating || 0),
           description: String(updateData.description || '')
+        }
+        
+        // 确保标题不为空
+        if (!formattedData.title) {
+          throw new Error('电影标题不能为空')
         }
         
         console.log(`更新电影 ID:${movieId}, 数据:`, formattedData)

@@ -56,6 +56,9 @@ export default {
           created_at: String(user.created_at || '')
         }))
         
+        // 按ID升序排序
+        processedUsers.sort((a, b) => a.id - b.id)
+        
         commit('SET_USERS', processedUsers)
         return processedUsers
       } catch (error) {
