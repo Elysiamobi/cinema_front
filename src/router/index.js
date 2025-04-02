@@ -9,6 +9,7 @@ import AdminDashboard from '../views/admin/Dashboard.vue'
 import AdminMovies from '../views/admin/Movies.vue'
 import AdminScreenings from '../views/admin/Screenings.vue'
 import AdminOrders from '../views/admin/Orders.vue'
+import AdminUsers from '../views/admin/Users.vue'
 
 const routes = [
   {
@@ -68,6 +69,12 @@ const routes = [
     name: 'AdminOrders',
     component: AdminOrders,
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: AdminUsers,
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 
@@ -77,17 +84,18 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const isAuthenticated = localStorage.getItem('token')
-  const userRole = localStorage.getItem('userRole')
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const isAdmin = user.is_admin || false
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
-  } else if (to.meta.requiresAdmin && userRole !== 'admin') {
+  } else if (to.meta.requiresAdmin && !isAdmin) {
     next('/')
   } else {
     next()
   }
 })
 
-export default router 
+export default router
