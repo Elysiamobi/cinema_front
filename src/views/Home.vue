@@ -1,7 +1,7 @@
 <template>
   <div class="home">
-    <h1>欢迎来到螺旋剧场</h1>
-    
+    <h1>铸就“常识”与“反常识”的螺旋</h1>
+    <h3 style="text-align: center; color: #606266;">“没错，就是我。螺旋工坊最年轻的主人，对凯文武装的开发者、黄昏纪元的魔术王、俯瞰群星之人，维尔薇！”</h3>
     <!-- 搜索和筛选功能 -->
     <div class="search-filter-container">
       <el-input
