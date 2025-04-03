@@ -1,19 +1,15 @@
 <template>
   <div class="admin-page">
     <div class="page-header">
-      <h2><slot name="title">{{ title }}</slot></h2>
+      <h2>{{ title }}</h2>
       <slot name="header-actions"></slot>
     </div>
 
-    <div class="content-section">
-      <slot name="filters"></slot>
-      
-      <transition name="fade" mode="out-in">
-        <slot></slot>
-      </transition>
-      
-      <slot name="pagination"></slot>
-    </div>
+    <slot name="search-filters"></slot>
+    
+    <slot></slot>
+    
+    <slot name="pagination"></slot>
   </div>
 </template>
 
@@ -23,7 +19,7 @@ export default {
   props: {
     title: {
       type: String,
-      default: '管理页面'
+      required: true
     }
   }
 }
@@ -34,14 +30,13 @@ export default {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
-  animation: fadeIn 0.5s ease;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   padding-bottom: 15px;
   border-bottom: 1px solid #ebeef5;
 }
@@ -63,64 +58,36 @@ export default {
   height: 3px;
   background-color: #409EFF;
   border-radius: 3px;
-  transition: width 0.3s ease;
 }
 
-.page-header:hover h2::after {
-  width: 100px;
-}
-
-.content-section {
-  background-color: white;
+:slotted(.search-filter-container) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8fafc;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 20px;
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.content-section:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-}
-
-/* 淡入淡出动画 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+:slotted(.pagination-container) {
+  margin-top: 20px;
+  padding: 15px 0;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 @media (max-width: 768px) {
-  .admin-page {
-    padding: 15px;
-  }
-  
-  .content-section {
-    padding: 15px;
-  }
-  
-  .page-header {
+  :slotted(.search-filter-container) {
     flex-direction: column;
-    align-items: flex-start;
   }
   
-  .page-header h2 {
-    margin-bottom: 15px;
+  :slotted(.pagination-container) {
+    justify-content: center;
   }
 }
 </style> 

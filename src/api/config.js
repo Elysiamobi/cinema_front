@@ -7,7 +7,9 @@ const publicPaths = [
   '/login', 
   '/register', 
   '/movies',  // 电影列表是公开的，不需要登录就能访问
-  '/screenings' // 放映场次也应该是公开的
+  '/screenings', // 放映场次也应该是公开的
+  '/screenings/', // 确保以斜杠结尾的路径也匹配
+  '/screenings/movie/' // 电影场次列表
 ]
 
 // 创建axios实例
@@ -19,8 +21,13 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   config => {
-    // 检查当前请求是否是公开路径
-    const isPublicPath = publicPaths.some(path => config.url?.includes(path))
+    // 检查当前请求是否是公开路径，更完善的检测逻辑
+    const url = config.url || '';
+    const isPublicPath = publicPaths.some(path => {
+      // 精确匹配路径开头部分
+      return url.startsWith(path);
+    });
+    
     console.log(`请求: ${config.url}, 是否公开路径: ${isPublicPath}`)
 
     // 从localStorage获取token

@@ -90,11 +90,12 @@ export default {
           updated_at: String(response.updated_at || '')
         }
         
-        // 如果有电影信息，添加到放映场次对象中
+        // 如果有电影信息，添加到放映场次对象中，使用所有可用的电影属性
         if (response.movie) {
           formattedScreening.movie = {
             id: parseInt(response.movie.id, 10),
             title: String(response.movie.title || '未知电影'),
+            description: String(response.movie.description || ''),
             director: String(response.movie.director || ''),
             actors: String(response.movie.actors || ''),
             duration: parseInt(response.movie.duration || 0),
