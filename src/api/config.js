@@ -7,9 +7,11 @@ const publicPaths = [
   '/login', 
   '/register', 
   '/movies',  // 电影列表是公开的，不需要登录就能访问
+  '/movies/', // 确保单个电影详情也可以访问
   '/screenings', // 放映场次也应该是公开的
   '/screenings/', // 确保以斜杠结尾的路径也匹配
-  '/screenings/movie/' // 电影场次列表
+  '/screenings/movie/', // 电影场次列表
+  '/screenings/*/seats' // 场次的座位信息是公开的
 ]
 
 // 创建axios实例

@@ -62,6 +62,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { getScreeningOccupiedSeats } from '@/api/screenings'
 
 export default {
   name: 'BookingPage',
@@ -148,74 +149,51 @@ export default {
     const getOccupiedSeats = async (screeningId) => {
       console.log('开始获取占用座位，放映场次ID:', screeningId)
       try {
-        // 获取已付款的订单中的座位信息
-        const paidOrders = await store.dispatch('orders/fetchPaidSeats', screeningId)
+        // 直接调用API获取已占座位，避免权限问题
+        const occupied = await getScreeningOccupiedSeats(screeningId)
         
-        // 收集所有已售座位
-        let occupied = []
-        if (Array.isArray(paidOrders)) {
-          console.log('处理已售座位，订单数量:', paidOrders.length)
+        if (Array.isArray(occupied)) {
+          console.log('获取到已售座位:', occupied)
           
-          paidOrders.forEach(order => {
-            console.log('处理订单座位:', order)
-            
-            // 处理不同格式的座位数据
-            let seats = []
-            
-            // 如果order.seats是数组
-            if (order.seats && Array.isArray(order.seats)) {
-              seats = order.seats
-              console.log('订单座位是数组:', seats)
-            } 
-            // 如果order.seats是字符串，尝试解析为JSON
-            else if (typeof order.seats === 'string') {
-              try {
-                seats = JSON.parse(order.seats)
-                console.log('解析座位字符串为JSON:', seats)
-              } catch (e) {
-                // 解析失败，尝试按逗号分隔
-                seats = order.seats.split(',')
-                console.log('解析座位字符串为数组(分隔符):', seats)
-              }
+          // 标准化座位格式为"行-列"
+          const formattedSeats = occupied.map(seat => {
+            // 如果座位已经是"行-列"格式
+            if (typeof seat === 'string' && seat.includes('-')) {
+              return seat;
             }
-            
-            // 确保seats是数组
-            if (Array.isArray(seats)) {
-              console.log('添加订单座位到已占用列表:', seats)
-              // 标准化座位格式为"行-列"
-              const formattedSeats = seats.map(seat => {
-                // 如果座位已经是"行-列"格式
-                if (typeof seat === 'string' && seat.includes('-')) {
-                  return seat;
-                }
-                // 如果座位是"行,列"格式
-                else if (typeof seat === 'string' && seat.includes(',')) {
-                  const [row, col] = seat.split(',');
-                  return `${row}-${col}`;
-                }
-                // 其他情况保持原样
-                return seat;
-              });
-              
-              occupied = [...occupied, ...formattedSeats];
-            } else {
-              console.warn('无法处理的座位格式:', order.seats)
+            // 如果座位是"行,列"格式
+            else if (typeof seat === 'string' && seat.includes(',')) {
+              const [row, col] = seat.split(',');
+              return `${row}-${col}`;
             }
-          })
+            // 其他情况保持原样
+            return seat;
+          });
+          
+          // 去重，防止重复座位
+          occupiedSeats.value = [...new Set(formattedSeats)]
+          console.log('最终占用座位列表:', occupiedSeats.value)
+        } else {
+          console.warn('获取到的座位数据不是数组:', occupied)
+          occupiedSeats.value = []
         }
-        
-        console.log('获取到已售座位:', occupied)
-        // 去重，防止重复座位
-        occupiedSeats.value = [...new Set(occupied)]
-        console.log('最终占用座位列表:', occupiedSeats.value)
       } catch (err) {
         console.error('获取已售座位失败:', err)
         ElMessage.warning('无法获取已售座位信息，请刷新页面重试')
+        occupiedSeats.value = []
       }
     }
 
     const handleBooking = async () => {
       try {
+        // 检查用户登录状态
+        const isLoggedIn = store.getters['auth/isAuthenticated']
+        if (!isLoggedIn) {
+          ElMessage.warning('请先登录后再购票')
+          router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+          return
+        }
+        
         if (!screening.value) {
           throw new Error('放映信息不存在')
         }
@@ -237,9 +215,21 @@ export default {
 
         console.log('提交订单数据:', orderData);
         
-        await store.dispatch('orders/createOrder', orderData)
-        ElMessage.success('订票成功')
-        router.push('/profile')
+        // 创建订单
+        const orderId = await store.dispatch('orders/createOrder', orderData);
+        
+        if (orderId) {
+          ElMessage.success('订票成功，即将跳转到支付页面');
+          
+          // 给用户一个视觉反馈
+          setTimeout(() => {
+            // 直接带用户去个人中心支付刚创建的订单
+            router.push('/profile');
+          }, 1500);
+        } else {
+          ElMessage.success('订票成功');
+          router.push('/profile');
+        }
       } catch (error) {
         console.error('订票失败:', error)
         ElMessage.error(error.message || '订票失败，请稍后重试')
@@ -274,9 +264,6 @@ export default {
           throw new Error('无效的放映场次ID')
         }
         
-        // 获取已售座位
-        await getOccupiedSeats(id)
-        
         // 先获取电影列表，以便显示电影详情
         await fetchMovies()
         
@@ -295,6 +282,15 @@ export default {
         
         // 存储数据
         screening.value = result
+        
+        // 获取已售座位（使用直接API方式，避免权限问题）
+        await getOccupiedSeats(id)
+        
+        // 检查用户登录状态
+        const isLoggedIn = store.getters['auth/isAuthenticated']
+        if (!isLoggedIn) {
+          ElMessage.warning('您尚未登录，请先登录后再购票')
+        }
       } catch (err) {
         console.error('获取放映信息失败:', err)
         error.value = err.message || '获取放映信息失败，请稍后重试'

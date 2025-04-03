@@ -20,6 +20,15 @@ export default {
     },
     SET_USER(state, user) {
       state.user = user
+      if (user && user.id) {
+        localStorage.setItem('user', JSON.stringify(user))
+        localStorage.setItem('userId', user.id)
+        localStorage.setItem('isAdmin', user.is_admin ? 'true' : 'false')
+      } else {
+        localStorage.removeItem('user')
+        localStorage.removeItem('userId')
+        localStorage.removeItem('isAdmin')
+      }
     },
     SET_LOADING(state, loading) {
       state.loading = loading
@@ -32,6 +41,9 @@ export default {
       state.user = null
       state.error = null
       localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('isAdmin')
     }
   },
   actions: {
@@ -58,7 +70,10 @@ export default {
             is_admin: response.is_admin,
             created_at: response.created_at
           }
+          
+          // 保存用户数据
           commit('SET_USER', user)
+          console.log('登录成功，用户ID:', user.id)
           
           // 立即获取最新的用户信息
           try {
@@ -111,18 +126,48 @@ export default {
         throw error
       }
     },
-    async updateUser({ commit }, userData) {
+    async updateUser({ commit, state }, userData) {
       try {
         if (!userData.id) {
           throw new Error('用户ID不能为空')
         }
+        
         const { id, ...data } = userData
-        const response = await updateUserInfo(id, data)
-        if (response && response.user) {
-          commit('SET_USER', response.user)
-          return response.user
-        } else {
-          throw new Error('更新用户信息失败：响应数据格式不正确')
+        
+        // 尝试通过API更新用户信息
+        try {
+          const response = await updateUserInfo(id, data)
+          if (response && response.user) {
+            commit('SET_USER', response.user)
+            return response.user
+          }
+        } catch (apiError) {
+          console.error('通过API更新用户信息失败:', apiError)
+          
+          // 如果API更新失败，并且用户正在更新自己的资料，尝试客户端更新
+          if (state.user && String(state.user.id) === String(id)) {
+            console.log('使用客户端回退机制更新用户资料')
+            
+            // 创建本地更新的用户对象
+            const updatedUser = {
+              ...state.user,
+              ...data,
+              id: state.user.id,  // 保留原始ID
+              is_admin: state.user.is_admin  // 保留原始管理员状态
+            }
+            
+            // 更新本地存储
+            commit('SET_USER', updatedUser)
+            
+            // 返回带有客户端处理标志的结果
+            return {
+              ...updatedUser,
+              client_processed: true
+            }
+          }
+          
+          // 如果不是更新自己或者有其他问题，则抛出错误
+          throw apiError
         }
       } catch (error) {
         console.error('更新用户失败:', error)

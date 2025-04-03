@@ -25,6 +25,54 @@
       </div>
     </template>
 
+    <!-- 数据概览卡片 -->
+    <el-row :gutter="20" class="stats-overview">
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="overview-card" shadow="hover">
+          <div class="overview-icon">
+            <el-icon><Tickets /></el-icon>
+          </div>
+          <div class="overview-data">
+            <div class="overview-value">{{ totalTickets }}</div>
+            <div class="overview-label">总观影人次</div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="overview-card" shadow="hover">
+          <div class="overview-icon revenue-icon">
+            <el-icon><Money /></el-icon>
+          </div>
+          <div class="overview-data">
+            <div class="overview-value">{{ formatCurrency(totalRevenue) }}</div>
+            <div class="overview-label">总票房收入</div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="overview-card" shadow="hover">
+          <div class="overview-icon theaters-icon">
+            <el-icon><House /></el-icon>
+          </div>
+          <div class="overview-data">
+            <div class="overview-value">{{ theaters.length }}</div>
+            <div class="overview-label">影院数量</div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="overview-card" shadow="hover">
+          <div class="overview-icon orders-icon">
+            <el-icon><Calendar /></el-icon>
+          </div>
+          <div class="overview-data">
+            <div class="overview-value">{{ validOrdersCount }}</div>
+            <div class="overview-label">有效订单数</div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <div class="charts-container">
       <el-row :gutter="20">
         <el-col :xs="24" :md="12">
@@ -48,12 +96,23 @@
           </el-card>
         </el-col>
       </el-row>
+      
       <el-row :gutter="20">
-        <el-col :span="24">
+        <el-col :xs="24" :md="12">
           <el-card class="chart-card">
             <template #header>
               <div class="card-header">
-                <span>热门电影票房（前5名）</span>
+                <span>影院人流量Top5</span>
+              </div>
+            </template>
+            <v-chart :option="theaterTrafficChartOption" autoresize class="chart" />
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :md="12">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header">
+                <span>热门电影Top5</span>
               </div>
             </template>
             <v-chart :option="barChartOption" autoresize class="chart" />
@@ -61,6 +120,68 @@
         </el-col>
       </el-row>
     </div>
+
+    <!-- 影院流量统计表格 -->
+    <el-card class="statistics-table">
+      <template #header>
+        <div class="card-header">
+          <span>影院人流量统计</span>
+        </div>
+      </template>
+      <el-table
+        :data="paginatedTheaterStats"
+        style="width: 100%"
+        border
+        stripe
+        v-loading="loading"
+      >
+        <el-table-column prop="theater" label="影院名称" min-width="180" />
+        <el-table-column label="人流量" width="120" sortable>
+          <template #default="{ row }">
+            {{ row.trafficCount }} 人
+          </template>
+        </el-table-column>
+        <el-table-column label="流量占比" width="120">
+          <template #default="{ row }">
+            {{ formatPercent(row.trafficPercentage) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="票房收入" width="150" sortable>
+          <template #default="{ row }">
+            {{ formatCurrency(row.revenue) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="收入占比" width="120">
+          <template #default="{ row }">
+            {{ formatPercent(row.revenuePercentage) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="场次数" width="100" sortable>
+          <template #default="{ row }">
+            {{ row.screeningsCount }} 场
+          </template>
+        </el-table-column>
+        <el-table-column label="平均票价" width="120">
+          <template #default="{ row }">
+            {{ formatCurrency(row.averageTicketPrice) }}
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="theaterCurrentPage"
+          v-model:page-size="theaterPageSize"
+          :page-sizes="[5, 10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="filteredTheaterStats.length"
+          :prev-text="'上一页'"
+          :next-text="'下一页'"
+          @size-change="handleTheaterSizeChange"
+          @current-change="handleTheaterCurrentChange"
+        />
+      </div>
+    </el-card>
 
     <el-card class="statistics-table">
       <template #header>
@@ -140,6 +261,7 @@ import {
   GridComponent
 } from 'echarts/components'
 import VChart from 'vue-echarts'
+import { Money, Tickets, House, Calendar } from '@element-plus/icons-vue'
 
 use([
   CanvasRenderer,
@@ -155,15 +277,28 @@ export default {
   name: 'StatisticsPage',
   components: {
     AdminPageLayout,
-    VChart
+    VChart,
+    Money,
+    Tickets,
+    House,
+    Calendar
   },
   setup() {
     const store = useStore()
     const loading = ref(true)
     
-    // 分页参数
+    // 总计数据
+    const totalRevenue = ref(0)
+    const totalTickets = ref(0)
+    const validOrdersCount = ref(0)
+    
+    // 分页参数 - 电影统计
     const currentPage = ref(1)
     const pageSize = ref(10)
+    
+    // 分页参数 - 影院统计
+    const theaterCurrentPage = ref(1)
+    const theaterPageSize = ref(10)
 
     // 搜索和筛选参数
     const searchQuery = ref('')
@@ -172,6 +307,136 @@ export default {
     const orders = computed(() => store.getters['orders/allOrders'] || [])
     const movies = computed(() => store.getters['movies/allMovies'] || [])
     const screenings = computed(() => store.getters['screenings/allScreenings'] || [])
+
+    // 获取影院列表（无重复）
+    const theaters = computed(() => {
+      const theaterSet = new Set()
+      screenings.value.forEach(screening => {
+        if (screening.theater) {
+          theaterSet.add(screening.theater)
+        }
+      })
+      return Array.from(theaterSet)
+    })
+
+    // 影院流量统计
+    const theaterStats = computed(() => {
+      if (!orders.value.length || !screenings.value.length) {
+        console.log('缺少数据用于影院统计')
+        return { stats: [], summary: { totalTraffic: 0, totalRevenue: 0 } }
+      }
+
+      const stats = {}
+      let totalTraffic = 0
+      let totalTheaterRevenue = 0
+
+      // 初始化影院统计数据
+      theaters.value.forEach(theater => {
+        stats[theater] = {
+          theater,
+          screeningsCount: 0,
+          trafficCount: 0,
+          revenue: 0,
+          trafficPercentage: 0,
+          revenuePercentage: 0,
+          averageTicketPrice: 0
+        }
+      })
+
+      // 统计每个影院的场次数
+      screenings.value.forEach(screening => {
+        if (stats[screening.theater]) {
+          stats[screening.theater].screeningsCount++
+        }
+      })
+
+      // 统计订单数据
+      orders.value.forEach(order => {
+        // 只统计已支付和已确认的订单
+        if (order.status === 'paid' || order.status === 'confirmed') {
+          let screeningId = order.screening_id
+
+          // 如果订单包含嵌套的screening对象，提取ID
+          if (order.screening && order.screening.id) {
+            screeningId = order.screening.id
+          }
+
+          // 查找订单对应的场次和影院
+          const screening = screenings.value.find(s => s.id === screeningId)
+          if (!screening || !screening.theater) {
+            return
+          }
+
+          const theater = screening.theater
+          if (!stats[theater]) {
+            return
+          }
+
+          // 处理座位信息，确保是数组格式
+          let seats = []
+          try {
+            if (Array.isArray(order.seats)) {
+              seats = order.seats
+            } else if (typeof order.seats === 'string') {
+              seats = JSON.parse(order.seats || '[]')
+            }
+          } catch (e) {
+            console.error('解析座位数据错误:', e)
+          }
+          
+          // 计算观影人数（座位数）
+          const trafficCount = seats.length
+          
+          // 累加流量和票房
+          const orderRevenue = parseFloat(order.total_price || 0)
+          stats[theater].trafficCount += trafficCount
+          stats[theater].revenue += orderRevenue
+          totalTraffic += trafficCount
+          totalTheaterRevenue += orderRevenue
+        }
+      })
+
+      // 计算百分比和平均票价
+      Object.values(stats).forEach(stat => {
+        stat.trafficPercentage = totalTraffic > 0 ? stat.trafficCount / totalTraffic : 0
+        stat.revenuePercentage = totalTheaterRevenue > 0 ? stat.revenue / totalTheaterRevenue : 0
+        stat.averageTicketPrice = stat.trafficCount > 0 ? stat.revenue / stat.trafficCount : 0
+      })
+
+      return {
+        stats: Object.values(stats),
+        summary: {
+          totalTraffic,
+          totalRevenue: totalTheaterRevenue
+        }
+      }
+    })
+
+    // 筛选后的影院统计
+    const filteredTheaterStats = computed(() => {
+      const stats = Array.isArray(theaterStats.value) ? theaterStats.value : (theaterStats.value.stats || [])
+      let result = [...stats]
+
+      // 按影院名称搜索
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(stat => 
+          stat.theater.toLowerCase().includes(query)
+        )
+      }
+
+      // 按流量降序排列
+      result.sort((a, b) => b.trafficCount - a.trafficCount)
+
+      return result
+    })
+
+    // 分页后的影院统计
+    const paginatedTheaterStats = computed(() => {
+      const start = (theaterCurrentPage.value - 1) * theaterPageSize.value
+      const end = start + theaterPageSize.value
+      return filteredTheaterStats.value.slice(start, end)
+    })
 
     // 统计数据
     const movieStats = computed(() => {
@@ -189,7 +454,7 @@ export default {
       const stats = {}
       let totalBoxOffice = 0
       let totalTickets = 0
-      let validOrdersCount = 0
+      let validOrdersCounter = 0
 
       // 初始化电影统计数据
       movies.value.forEach(movie => {
@@ -260,7 +525,7 @@ export default {
           stats[movieId].ticketsSold += ticketCount
           totalBoxOffice += totalPrice
           totalTickets += ticketCount
-          validOrdersCount++
+          validOrdersCounter++
           
           console.log(`有效订单: ID=${order.id}, 电影=${stats[movieId].title}, 票价=${totalPrice}, 票数=${ticketCount}`)
         } else {
@@ -268,7 +533,7 @@ export default {
         }
       })
 
-      console.log(`统计完成: 有效订单=${validOrdersCount}, 总票房=${totalBoxOffice}, 总票数=${totalTickets}`)
+      console.log(`统计完成: 有效订单=${validOrdersCounter}, 总票房=${totalBoxOffice}, 总票数=${totalTickets}`)
 
       // 计算百分比和平均票价
       Object.values(stats).forEach(stat => {
@@ -278,12 +543,34 @@ export default {
         stat.occupancyRate = 0.75  // 假设每场次平均上座率，实际应按座位总数计算
       })
 
-      return Object.values(stats)
+      // 返回统计结果以及总计数据作为对象
+      const result = {
+        stats: Object.values(stats),
+        summary: {
+          totalBoxOffice,
+          totalTickets,
+          validOrdersCount: validOrdersCounter
+        }
+      }
+
+      return result
     })
+
+    // 将computed返回的汇总数据更新到对应的ref
+    watch(() => movieStats.value.summary, (summary) => {
+      if (summary) {
+        totalRevenue.value = summary.totalBoxOffice
+        totalTickets.value = summary.totalTickets
+        validOrdersCount.value = summary.validOrdersCount
+      }
+    }, { immediate: true })
 
     // 筛选后的统计数据
     const filteredMovieStats = computed(() => {
-      let result = [...movieStats.value]
+      // 如果movieStats返回的是带摘要信息的对象，则取其stats属性
+      const stats = Array.isArray(movieStats.value) ? movieStats.value : (movieStats.value.stats || [])
+      
+      let result = [...stats]
 
       // 按电影名称搜索
       if (searchQuery.value) {
@@ -534,9 +821,97 @@ export default {
       }
     })
 
+    // 柱状图配置 - 影院人流量Top5
+    const theaterTrafficChartOption = computed(() => {
+      // 取流量前5的影院数据
+      const topTheaters = filteredTheaterStats.value
+        .filter(stat => stat.trafficCount > 0)
+        .sort((a, b) => b.trafficCount - a.trafficCount)
+        .slice(0, 5)
+
+      const theaterNames = topTheaters.map(theater => theater.theater)
+      const trafficData = topTheaters.map(theater => theater.trafficCount)
+      const revenueData = topTheaters.map(theater => theater.revenue)
+
+      return {
+        title: {
+          text: '影院人流量与票房对比',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        legend: {
+          data: ['人流量（人次）', '票房收入（元）'],
+          bottom: 10
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '15%',
+          top: '15%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: theaterNames,
+          axisLabel: {
+            interval: 0,
+            rotate: 30
+          }
+        },
+        yAxis: [
+          {
+            type: 'value',
+            name: '人流量（人次）',
+            position: 'left'
+          },
+          {
+            type: 'value',
+            name: '票房收入（元）',
+            position: 'right'
+          }
+        ],
+        series: [
+          {
+            name: '人流量（人次）',
+            type: 'bar',
+            yAxisIndex: 0,
+            data: trafficData,
+            itemStyle: {
+              color: '#FF9800'
+            }
+          },
+          {
+            name: '票房收入（元）',
+            type: 'bar',
+            yAxisIndex: 1,
+            data: revenueData,
+            itemStyle: {
+              color: '#E91E63'
+            }
+          }
+        ]
+      }
+    })
+
+    // 影院分页处理
+    const handleTheaterSizeChange = (size) => {
+      theaterPageSize.value = size
+      theaterCurrentPage.value = 1
+    }
+
+    const handleTheaterCurrentChange = (page) => {
+      theaterCurrentPage.value = page
+    }
+
     // 当筛选条件改变时，重置页码
     watch([searchQuery, dateRange], () => {
       currentPage.value = 1
+      theaterCurrentPage.value = 1
     })
 
     // 分页处理函数
@@ -552,6 +927,7 @@ export default {
     // 搜索处理函数
     const handleSearch = () => {
       currentPage.value = 1
+      theaterCurrentPage.value = 1
     }
 
     // 重置筛选条件
@@ -559,6 +935,7 @@ export default {
       searchQuery.value = ''
       dateRange.value = []
       currentPage.value = 1
+      theaterCurrentPage.value = 1
     }
 
     // 格式化货币
@@ -598,15 +975,26 @@ export default {
       loading,
       currentPage,
       pageSize,
+      theaterCurrentPage,
+      theaterPageSize,
       searchQuery,
       dateRange,
+      totalRevenue,
+      totalTickets,
+      validOrdersCount,
+      theaters,
       filteredMovieStats,
       paginatedMovieStats,
+      filteredTheaterStats,
+      paginatedTheaterStats,
       pieChartOption,
       ticketPieChartOption,
       barChartOption,
+      theaterTrafficChartOption,
       handleSizeChange,
       handleCurrentChange,
+      handleTheaterSizeChange,
+      handleTheaterCurrentChange,
       handleSearch,
       resetFilters,
       formatCurrency,
@@ -617,12 +1005,86 @@ export default {
 </script>
 
 <style scoped>
+.stats-overview {
+  margin-bottom: 20px;
+}
+
+.overview-card {
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  height: 100px;
+  overflow: hidden;
+}
+
+.overview-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.overview-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: rgba(64, 158, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #409EFF;
+}
+
+.revenue-icon {
+  background-color: rgba(103, 194, 58, 0.1);
+  color: #67c23a;
+}
+
+.theaters-icon {
+  background-color: rgba(230, 162, 60, 0.1);
+  color: #e6a23c;
+}
+
+.orders-icon {
+  background-color: rgba(245, 108, 108, 0.1);
+  color: #f56c6c;
+}
+
+.overview-data {
+  flex: 1;
+  text-align: right;
+  padding-left: 15px;
+}
+
+.overview-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.2;
+}
+
+.overview-label {
+  font-size: 14px;
+  color: #909399;
+  margin-top: 5px;
+}
+
 .charts-container {
   margin-bottom: 20px;
 }
 
 .chart-card {
   margin-bottom: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.chart-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .chart {
@@ -633,16 +1095,36 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 15px 20px;
 }
 
 .card-header span {
   font-size: 18px;
   font-weight: 600;
   color: #303133;
+  position: relative;
+}
+
+.card-header span::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 30px;
+  height: 3px;
+  background-color: #409EFF;
+  border-radius: 3px;
 }
 
 .statistics-table {
   margin-bottom: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.statistics-table:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .search-filter-container {
@@ -650,10 +1132,10 @@ export default {
   flex-wrap: wrap;
   gap: 15px;
   margin-bottom: 20px;
-  padding: 15px;
+  padding: 20px;
   background-color: #f8fafc;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .pagination-container {
@@ -661,6 +1143,31 @@ export default {
   padding: 15px 0;
   display: flex;
   justify-content: flex-end;
+}
+
+/* 表格样式美化 */
+:deep(.el-table) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.el-table th) {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+  padding: 12px 0;
+}
+
+:deep(.el-table td) {
+  padding: 12px 0;
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: #fafafa;
+}
+
+:deep(.el-table__row:hover > td) {
+  background-color: #f5f7fa !important;
 }
 
 @media (max-width: 768px) {
@@ -679,6 +1186,21 @@ export default {
   
   .chart {
     height: 300px;
+  }
+  
+  .overview-card {
+    height: auto;
+    padding: 20px;
+  }
+  
+  .overview-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+  
+  .overview-value {
+    font-size: 24px;
   }
 }
 </style> 

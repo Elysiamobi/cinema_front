@@ -209,8 +209,18 @@ export default {
         }
         
         console.log('创建订单，处理后的数据:', formattedData)
-        await createOrder(formattedData)
-        return dispatch('fetchUserOrders')
+        // 创建订单并获取返回的订单ID
+        const result = await createOrder(formattedData)
+        
+        if (result && result.order_id) {
+          console.log('订单创建成功，ID:', result.order_id)
+          // 刷新用户订单
+          await dispatch('fetchUserOrders')
+          return result.order_id
+        } else {
+          console.warn('创建订单成功但未返回ID:', result)
+          return null
+        }
       } catch (error) {
         console.error('创建订单失败:', error)
         throw error
@@ -228,21 +238,22 @@ export default {
           throw new Error('订单状态不能为空')
         }
         
-        // 后端API接受的状态值: "pending", "paid", "cancelled"
-        // 1. 对于"completed"状态，需要在API层转为"paid"
-        // 2. 前端状态存储保持一致，使用统一的状态名称
-        // 3. 后端API负责将"paid"映射为数据库的"confirmed"状态
+        // 使用API进行状态更新
+        const response = await updateOrderStatus(id, status)
         
-        // 调用API更新状态
-        const result = await updateOrderStatus(id, status)
-        console.log('更新订单状态响应:', result)
+        // 处理响应，检查是否为客户端fallback处理的结果
+        if (response && response.client_processed) {
+          console.log(`客户端处理了订单状态变更: ID=${id}, status=${status}`)
+        } else {
+          console.log(`服务端成功处理了订单状态变更: ID=${id}, status=${status}`)
+        }
         
-        // 在本地状态中更新订单状态，保持前端状态一致
+        // 无论是服务端还是客户端处理，都更新本地状态
         commit('UPDATE_ORDER_STATUS', { id, status })
         
-        return result
+        return response
       } catch (error) {
-        console.error('更新订单状态失败:', error)
+        console.error(`更新订单 #${id} 状态为 ${status} 失败:`, error)
         throw error
       }
     },
@@ -256,35 +267,46 @@ export default {
         screeningId = parseInt(screeningId, 10);
         console.log('获取已售座位，场次ID:', screeningId)
         
-        try {
-          // 先尝试获取所有订单，这样能获取到所有用户的订单
-          await dispatch('fetchOrders')
-        } catch (e) {
-          console.warn('获取所有订单失败，将只检查当前用户的订单:', e)
-        }
+        // 存储所有订单
+        let ordersToCheck = [];
         
-        // 尝试获取当前用户的订单
+        // 优先尝试获取用户的订单 - 这个应该总是允许的
         try {
           await dispatch('fetchUserOrders')
+          // 添加用户订单到列表
+          ordersToCheck = [...this.state.orders.userOrders];
+          console.log('成功获取用户订单:', ordersToCheck.length);
         } catch (e) {
-          console.warn('获取用户订单失败:', e)
+          console.warn('获取用户订单失败:', e);
         }
         
-        // 合并所有订单和用户订单，并去重
-        const allOrders = [
-          ...this.state.orders.orders,  // 所有订单
-          ...this.state.orders.userOrders  // 用户自己的订单
-        ]
+        // 然后尝试获取所有订单 - 这个操作可能只有管理员有权限
+        try {
+          // 尝试获取所有订单，这样能获取到所有用户的订单
+          // 如果是管理员，这将成功；如果是普通用户，会返回403错误
+          await dispatch('fetchOrders')
+          
+          // 如果成功，将订单添加到列表，去除可能的重复
+          const allOrdersList = this.state.orders.orders;
+          console.log('成功获取所有订单，数量:', allOrdersList.length);
+          
+          // 合并所有订单和用户自己的订单并去重
+          ordersToCheck = [
+            ...ordersToCheck, 
+            ...allOrdersList.filter(order => 
+              !ordersToCheck.some(userOrder => userOrder.id === order.id)
+            )
+          ];
+        } catch (e) {
+          // 这个错误是预期的，对普通用户来说，只能看到自己的订单
+          console.warn('获取所有订单失败(可能是权限问题):', e);
+          // 继续使用用户自己的订单
+        }
         
-        // 去除重复订单（可能同时存在于allOrders和userOrders中）
-        const uniqueOrders = allOrders.filter((order, index, self) => 
-          index === self.findIndex(o => o.id === order.id)
-        );
-        
-        console.log('所有可能的订单:', uniqueOrders)
+        console.log('最终处理的订单数量:', ordersToCheck.length);
         
         // 过滤出指定场次的已支付订单
-        if (!uniqueOrders || !uniqueOrders.length) {
+        if (!ordersToCheck.length) {
           console.warn('没有找到任何订单')
           return []
         }
@@ -293,7 +315,7 @@ export default {
         // API和前端使用：pending, paid, cancelled
         // 数据库使用：pending, confirmed, completed, cancelled
         // 但是用户界面会看到：pending, paid, confirmed, completed, cancelled
-        const paidOrders = uniqueOrders.filter(order => {
+        const paidOrders = ordersToCheck.filter(order => {
           // 检查订单screening_id是否匹配
           const orderScreeningId = parseInt(order.screening_id || order.screening?.id, 10);
           

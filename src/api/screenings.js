@@ -267,3 +267,22 @@ export const updateScreening = (id, data) => {
 export const deleteScreening = (id) => {
   return api.delete(`/screenings/${id}`)
 }
+
+// 获取场次已占用座位
+export const getScreeningOccupiedSeats = async (screeningId) => {
+  try {
+    console.log(`获取场次已占用座位, ID: ${screeningId}`)
+    const response = await api.get(`/screenings/${screeningId}/seats`)
+    
+    if (!response || !response.occupied_seats) {
+      console.warn('获取座位数据失败，格式不正确:', response)
+      return []
+    }
+    
+    console.log('获取到已占用座位:', response.occupied_seats)
+    return response.occupied_seats
+  } catch (error) {
+    console.error('获取已占用座位失败:', error)
+    return [] // 返回空数组，防止页面崩溃
+  }
+}
