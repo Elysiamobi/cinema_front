@@ -42,6 +42,16 @@
           <el-button type="primary" @click="$router.push('/admin/orders')">订单列表</el-button>
         </el-card>
       </el-col>
+      <el-col :span="8">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>统计数据</span>
+            </div>
+          </template>
+          <el-button type="primary" @click="$router.push('/admin/statistics')">票房统计</el-button>
+        </el-card>
+      </el-col>
     </el-row>
   </div>
 </template>

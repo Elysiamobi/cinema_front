@@ -23,6 +23,10 @@
           <el-icon><User /></el-icon>
           <span>用户管理</span>
         </el-menu-item>
+        <el-menu-item index="/admin/statistics">
+          <el-icon><TrendCharts /></el-icon>
+          <span>统计数据</span>
+        </el-menu-item>
       </el-menu>
     </div>
     <div class="admin-content">
@@ -34,10 +38,14 @@
 <script>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { TrendCharts } from '@element-plus/icons-vue'
 import '../../assets/styles/admin-tables.css'
 
 export default {
   name: 'AdminLayout',
+  components: {
+    TrendCharts
+  },
   setup() {
     const route = useRoute()
     

@@ -11,6 +11,7 @@ import AdminMovies from '../views/admin/Movies.vue'
 import AdminScreenings from '../views/admin/Screenings.vue'
 import AdminOrders from '../views/admin/Orders.vue'
 import AdminUsers from '../views/admin/Users.vue'
+import AdminStatistics from '../views/admin/Statistics.vue'
 
 const routes = [
   {
@@ -77,6 +78,11 @@ const routes = [
         path: 'users',
         name: 'AdminUsers',
         component: AdminUsers
+      },
+      {
+        path: 'statistics',
+        name: 'AdminStatistics',
+        component: AdminStatistics
       }
     ]
   }
